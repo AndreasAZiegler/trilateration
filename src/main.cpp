@@ -1,8 +1,23 @@
+/**
+ * \file main.cpp
+ * \author Andreas Ziegler
+ * \date 11.05.2018
+ * \brief Performing trilateration with at least
+ *        four known point in 3D and the distances
+ *        in order to determine the location.
+ */
+
 #include <iostream>
 #include <vector>
 
-#include "ceres/ceres.h"
+#include "solver.h"
 
+/**
+ * Reads coordinates of the points and the distances from std input.
+ * \param[in] num_points The number of points the user want to add.
+ * \param[out] distances A vector containing the distances to the defined points.
+ * \param[out] A vector containing a vector with the 3D coordinates of the defined points.
+ */
 void GetPointsAndDistances(const int num_points,
                            std::vector<double> &distances,
                            std::vector<std::vector<double>> &world_coordinates) {
@@ -27,6 +42,11 @@ void GetPointsAndDistances(const int num_points,
   }
 }
 
+/**
+ * Print coordinates of the points and the distances to the std input.
+ * \param[in] distances A vector containing the distances to the defined points.
+ * \param[in] A vector containing a vector with the 3D coordinates of the defined points.
+ */
 void PrintPointsAndDistances(const std::vector<double> &distances,
                              const std::vector<std::vector<double>> &world_coordinates) {
 
@@ -47,63 +67,11 @@ void PrintPointsAndDistances(const std::vector<double> &distances,
   }
 }
 
-struct CostFunctor {
-  CostFunctor(std::vector<double>& a_n, double d_n)
-  : a_n_(a_n), d_n_(d_n) {}
-  template <typename T>
-  bool operator()(const T* const x,
-                  T* residual) const {
-    residual[0] = ((T(a_n_[0]) - x[0]) * (T(a_n_[0]) - x[0])
-                 + (T(a_n_[1]) - x[1]) * (T(a_n_[1]) - x[1])
-                 + (T(a_n_[2]) - x[2]) * (T(a_n_[2]) - x[2])
-                 - T(d_n_) * T(d_n_));
-    return true;
-  }
-
- private:
-    const std::vector<double>& a_n_;
-    const double d_n_;
-};
-
-void CalculatePosition(std::vector<double> &position,
-                       std::vector<double> &distances,
-                       std::vector<std::vector<double>> &world_coordinates) {
-
-  // The variables to solve for
-  std::vector<double> x = {0.0, 0.0, 0.0};
-
-  // Build the problem
-  ceres::Problem problem;
-
-  // Add residual term to the problem usin the autodiff
-  for (int i = 0; i < distances.size(); i++) {
-    ceres::CostFunction *cost_function =
-      new ceres::AutoDiffCostFunction<CostFunctor, 1, 3>(
-          new CostFunctor(world_coordinates[i], distances[i]));
-
-    problem.AddResidualBlock(cost_function,
-                             NULL,
-                             x.data());
-  }
-
-  // Run the solver
-  ceres::Solver::Options options;
-  options.minimizer_progress_to_stdout = true;
-  ceres::Solver::Summary summary;
-  ceres::Solve(options, &problem, &summary);
-
-  std::cout << summary.BriefReport() << std::endl;
-  std::cout << "x: " << x[0] << ", " << x[1] << ", " << x[2] << std::endl;
-
-  for (int i = 0; i < 3; i++) {
-    position[i] = x[i];
-  }
-}
 
 int main(void) {
   int num_points = 0;
 
-  while (3 > num_points) {
+  while (4 > num_points) {
     std::cout << "How many corresponding 3D point distance pairs do you want to enter? Please provide at least three pairs." << std::endl;
     std::cin >> num_points;
   }
@@ -116,6 +84,8 @@ int main(void) {
 
   std::vector<double> position = {0.0, 0.0, 0.0};
   CalculatePosition(position, distances, world_coordinates);
+
+  std::cout << "position: x = " << x[0] << ", y = " << x[1] << ", z = " << x[2] << std::endl;
 
   return 0;
 }
