@@ -85,7 +85,7 @@ int main(void) {
   std::vector<double> position = {0.0, 0.0, 0.0};
   CalculatePosition(position, distances, world_coordinates);
 
-  std::cout << "position: x = " << x[0] << ", y = " << x[1] << ", z = " << x[2] << std::endl;
+  std::cout << "position: x = " << position[0] << ", y = " << position[1] << ", z = " << position[2] << std::endl;
 
   return 0;
 }
